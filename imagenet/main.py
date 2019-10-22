@@ -25,6 +25,8 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
+parser.add_argument('--my-model', default=None, type=str,
+                    help='use my model')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -134,7 +136,22 @@ def main_worker(gpu, ngpus_per_node, args):
         model = models.__dict__[args.arch](pretrained=True)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+
+        if args.my_model == 'zerocenter':
+            import my_models.zerocenter as my_model
+            model = my_model.__dict__[args.arch]()
+            prefix = args.my_model
+        elif args.my_model == 'zerocenter2':
+            import my_models.zerocenter2 as my_model
+            model = my_model.__dict__[args.arch]()
+            prefix = args.my_model
+        else:
+            model = models.__dict__[args.arch]()
+            prefix = 'normal'
+        
+        model_full_name = prefix + '_' + args.arch
+            
+        print("=> model is ", model_full_name)
 
     if args.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
@@ -240,10 +257,11 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
+        train_stats = train(train_loader, model, criterion, optimizer, epoch, args)
 
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
+        val_stats = validate(val_loader, model, criterion, args)
+        acc1 = val_stats[1]
 
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -256,8 +274,10 @@ def main_worker(gpu, ngpus_per_node, args):
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
+                'train_stats': train_stats,
+                'val_stats': val_stats,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best)
+            }, is_best, filename=model_full_name + '_' + str(epoch + 1))
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -304,7 +324,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if i % args.print_freq == 0:
             progress.display(i)
-
+    
+    return losses.avg, top1.avg.tolist(), top5.avg.tolist()
 
 def validate(val_loader, model, criterion, args):
     batch_time = AverageMeter('Time', ':6.3f')
@@ -347,7 +368,7 @@ def validate(val_loader, model, criterion, args):
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg
+    return losses.avg, top1.avg.tolist(), top5.avg.tolist()
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
