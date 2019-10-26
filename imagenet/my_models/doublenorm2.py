@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 #from .utils import load_state_dict_from_url
-from .utils import zeronorm
+from utils import zeronorm
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
@@ -347,3 +347,9 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
     kwargs['width_per_group'] = 64 * 2
     return _resnet('wide_resnet101_2', Bottleneck, [3, 4, 23, 3],
                    pretrained, progress, **kwargs)
+
+if __name__ is '__main__':
+    net = resnet50()
+    x = torch.randn([2, 3, 224, 224])
+    out = net(x)
+    print(out)
