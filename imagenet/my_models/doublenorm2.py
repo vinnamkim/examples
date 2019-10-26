@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 #from .utils import load_state_dict_from_url
-from utils import zeronorm
+from .utils import zeronorm
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
