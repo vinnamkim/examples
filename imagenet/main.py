@@ -145,6 +145,10 @@ def main_worker(gpu, ngpus_per_node, args):
             import my_models.zerocenter2 as my_model
             model = my_model.__dict__[args.arch]()
             prefix = args.my_model
+        elif args.my_model == 'doublenorm':
+            import my_models.doublenorm as my_model
+            model = my_model.__dict__[args.arch]()
+            prefix = args.my_model
         elif args.my_model == 'doublenorm2':
             import my_models.doublenorm2 as my_model
             model = my_model.__dict__[args.arch]()
